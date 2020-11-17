@@ -1,7 +1,8 @@
-TechnodeFirmaCraft Mod
+Horse Power
+===============
 
-This is the repo for the 'glue' mod in the modpack TechnodeFirmaCraft (http://github.com/anodecathode/technodefirmacraft). 
-
+This is a fork of the repo for the 'glue' mod in the modpack TechnodeFirmaCraft (http://github.com/anodecathode/technodefirmacraft).
+It only contains the TFC-compatible version of Horse Power.
 
 We use YourKit Java Profiler to monitor/profile and learn about the exotic issues faced by modded Minecraft developers. Highly recommended!
 
