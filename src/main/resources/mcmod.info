@@ -1,8 +1,8 @@
 [
   {
-    "modid": "tnfcmod",
-    "name": "Technodefirmacraft",
-    "description": "Adds bits for TNFC modpack",
+    "modid": "horsepower",
+    "name": "Horse Power",
+    "description": "A mods that adds horse powered blocks.",
     "version": "${mod_version}",
     "mcversion": "${mc_version}",
     "authorList": [

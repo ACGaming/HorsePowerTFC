@@ -12,6 +12,8 @@
       "up": {},
       "down": {}
     },
-    "inventory": { "model": "minecraft:builtin/generated" }
+    "inventory": {
+      "model": "minecraft:builtin/generated"
+    }
   }
 }

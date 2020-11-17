@@ -4,7 +4,11 @@
     "model": "horsepower:chopping_block"
   },
   "variants": {
-    "normal": { "model": "horsepower:chopping_block" },
-    "inventory": { "model": "horsepower:chopping_block" }
+    "normal": {
+      "model": "horsepower:chopping_block"
+    },
+    "inventory": {
+      "model": "horsepower:chopping_block"
+    }
   }
 }

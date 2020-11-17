@@ -35,5 +35,10 @@
       }
     }
   },
-  "requirements": [["get_grindstone", "get_wheat"]]
+  "requirements": [
+    [
+      "get_grindstone",
+      "get_wheat"
+    ]
+  ]
 }

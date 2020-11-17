@@ -27,217 +27,256 @@ import java.util.List;
 import static crafttweaker.api.minecraft.CraftTweakerMC.getItemStacks;
 
 @ZenClass("mods.horsepower.Recipes")
-public class TweakerPluginImpl implements ITweakerPlugin {
+public class TweakerPluginImpl implements ITweakerPlugin
+{
 
-    public TweakerPluginImpl() {
-    }
+	public static final List<IAction> LATE_ADDITIONS = new LinkedList<>();
+	private static final IntSet usedHashes = new IntOpenHashSet();
+	public static List<IHPAction> toAdd = new ArrayList<>();
+	public static List<IHPAction> toRemove = new ArrayList<>();
+	public static List<IAction> actions = new LinkedList<>();
 
-    private static IntSet usedHashes = new IntOpenHashSet();
-    public static List<IHPAction> toAdd = new ArrayList<>();
-    public static List<IHPAction> toRemove = new ArrayList<>();
+	public TweakerPluginImpl()
+	{
+	}
 
-    public static List<IAction> actions = new LinkedList<>();
-    public static final List<IAction> LATE_ADDITIONS = new LinkedList<>();
+	@ZenMethod
+	public static void addShaped(String name, IIngredient ore, IItemStack output, IIngredient[][] ingredients)
+	{
+		LATE_ADDITIONS.add(new AddShapedChoppingRecipe(name, ore, output, ingredients));
+	}
 
-    @Override
-    public void applyTweaker() {
-        for (IAction action: actions)
-            action.apply();
-    }
+	@ZenMethod
+	public static void addShaped(IIngredient ore, IItemStack output, IIngredient[][] ingredients)
+	{
+		LATE_ADDITIONS.add(new AddShapedChoppingRecipe(ore, output, ingredients));
+	}
 
-    @Override
-    public void register() {
-        CraftTweakerAPI.registerClass(GrindstoneRecipeTweaker.class);
-        CraftTweakerAPI.registerClass(ChoppingRecipeTweaker.class);
-        CraftTweakerAPI.registerClass(PressRecipeTweaker.class);
-        CraftTweakerAPI.registerClass(TweakerPluginImpl.class);
-    }
+	@ZenMethod
+	public static void addShapeless(String name, IIngredient ore, IItemStack output, IIngredient[] ingredients)
+	{
+		LATE_ADDITIONS.add(new AddShapelessChoppingRecipe(name, ore, output, ingredients));
+	}
 
-    @Override
-    public void run() {
-        toRemove.forEach(IHPAction::run);
-        toAdd.forEach(IHPAction::run);
-        LATE_ADDITIONS.forEach(IAction::apply);
-    }
+	@ZenMethod
+	public static void addShapeless(IIngredient ore, IItemStack output, IIngredient[] ingredients)
+	{
+		LATE_ADDITIONS.add(new AddShapelessChoppingRecipe(ore, output, ingredients));
+	}
 
-    @ZenMethod
-    public static void addShaped(String name, IIngredient ore, IItemStack output, IIngredient[][] ingredients) {
-        LATE_ADDITIONS.add(new AddShapedChoppingRecipe(name, ore, output, ingredients));
-    }
+	public static ShapedChoppingRecipe convert(CTShapedChoppingRecipe recipe, ResourceLocation name)
+	{
+		IIngredient[] ingredients = recipe.getIngredients();
+		byte[] posx = recipe.getIngredientsX();
+		byte[] posy = recipe.getIngredientsY();
+		int counter;
 
-    @ZenMethod
-    public static void addShaped(IIngredient ore, IItemStack output, IIngredient[][] ingredients) {
-        LATE_ADDITIONS.add(new AddShapedChoppingRecipe(ore, output, ingredients));
-    }
+		Object[] converted = new Object[recipe.getHeight() * recipe.getWidth()];
 
-    @ZenMethod
-    public static void addShapeless(String name, IIngredient ore, IItemStack output, IIngredient[] ingredients) {
-        LATE_ADDITIONS.add(new AddShapelessChoppingRecipe(name, ore, output, ingredients));
-    }
+		for (counter = 0; counter < ingredients.length; ++counter)
+		{
+			converted[posx[counter] + posy[counter] * recipe.getWidth()] = ingredients[counter].getInternal();
+		}
 
-    @ZenMethod
-    public static void addShapeless(IIngredient ore, IItemStack output, IIngredient[] ingredients) {
-        LATE_ADDITIONS.add(new AddShapelessChoppingRecipe(ore, output, ingredients));
-    }
+		counter = 0;
+		String[] parts = new String[recipe.getHeight()];
+		ArrayList rarguments = new ArrayList();
 
-    public static ShapedChoppingRecipe convert(CTShapedChoppingRecipe recipe, ResourceLocation name) {
-        IIngredient[] ingredients = recipe.getIngredients();
-        byte[] posx = recipe.getIngredientsX();
-        byte[] posy = recipe.getIngredientsY();
-        int counter;
+		for (int i = 0; i < recipe.getHeight(); ++i)
+		{
+			char[] pattern = new char[recipe.getWidth()];
 
-        Object[] converted = new Object[recipe.getHeight() * recipe.getWidth()];
+			for (int j = 0; j < recipe.getWidth(); ++j)
+			{
+				int off = i * recipe.getWidth() + j;
+				if (converted[off] == null)
+				{
+					pattern[j] = 32;
+				} else
+				{
+					pattern[j] = (char) (65 + counter);
+					rarguments.add(Character.valueOf(pattern[j]));
+					rarguments.add(converted[off]);
+					++counter;
+				}
+			}
 
-        for(counter = 0; counter < ingredients.length; ++counter) {
-            converted[posx[counter] + posy[counter] * recipe.getWidth()] = ingredients[counter].getInternal();
-        }
+			parts[i] = new String(pattern);
+		}
 
-        counter = 0;
-        String[] parts = new String[recipe.getHeight()];
-        ArrayList rarguments = new ArrayList();
+		rarguments.addAll(0, Arrays.asList(parts));
+		return new ShapedChoppingRecipe(name, Lists.newArrayList(getItemStacks(recipe.getOre().getItems())), (ItemStack) recipe.getOutput().getInternal(), rarguments.toArray());
+	}
 
-        for(int i = 0; i < recipe.getHeight(); ++i) {
-            char[] pattern = new char[recipe.getWidth()];
+	public static ShapelessChoppingRecipe convert(CTShapelessChoppingRecipe recipe, ResourceLocation name)
+	{
+		IIngredient[] ingredients = recipe.getIngredients();
+		Object[] items = new Object[ingredients.length];
+		for (int i = 0; i < ingredients.length; i++)
+		{
+			items[i] = ingredients[i].getInternal();
+		}
+		return new ShapelessChoppingRecipe(name, Lists.newArrayList(getItemStacks(recipe.getOre().getItems())), (ItemStack) recipe.getOutput().getInternal(), items);
+	}
 
-            for(int j = 0; j < recipe.getWidth(); ++j) {
-                int off = i * recipe.getWidth() + j;
-                if(converted[off] == null) {
-                    pattern[j] = 32;
-                } else {
-                    pattern[j] = (char)(65 + counter);
-                    rarguments.add(Character.valueOf(pattern[j]));
-                    rarguments.add(converted[off]);
-                    ++counter;
-                }
-            }
+	@Override
+	public void applyTweaker()
+	{
+		for (IAction action : actions)
+			action.apply();
+	}
 
-            parts[i] = new String(pattern);
-        }
+	@Override
+	public void register()
+	{
+		CraftTweakerAPI.registerClass(GrindstoneRecipeTweaker.class);
+		CraftTweakerAPI.registerClass(ChoppingRecipeTweaker.class);
+		CraftTweakerAPI.registerClass(PressRecipeTweaker.class);
+		CraftTweakerAPI.registerClass(TweakerPluginImpl.class);
+	}
 
-        rarguments.addAll(0, Arrays.asList(parts));
-        return new ShapedChoppingRecipe(name, Lists.newArrayList(getItemStacks(recipe.getOre().getItems())), (ItemStack) recipe.getOutput().getInternal(), rarguments.toArray());
-    }
+	@Override
+	public void run()
+	{
+		toRemove.forEach(IHPAction::run);
+		toAdd.forEach(IHPAction::run);
+		LATE_ADDITIONS.forEach(IAction::apply);
+	}
 
-    public static ShapelessChoppingRecipe convert(CTShapelessChoppingRecipe recipe, ResourceLocation name) {
-        IIngredient[] ingredients = recipe.getIngredients();
-        Object[] items = new Object[ingredients.length];
-        for(int i = 0; i < ingredients.length; i++) {
-            items[i] = ingredients[i].getInternal();
-        }
-        return new ShapelessChoppingRecipe(name, Lists.newArrayList(getItemStacks(recipe.getOre().getItems())), (ItemStack) recipe.getOutput().getInternal(), items);
-    }
+	private static class AddShapedChoppingRecipe implements IAction
+	{
 
-    private static class AddShapedChoppingRecipe implements IAction {
+		private final IIngredient ore;
+		private final IItemStack output;
+		private final IIngredient[][] ingredients;
+		private final String name;
 
-        private IIngredient ore;
-        private IItemStack output;
-        private IIngredient[][] ingredients;
-        private String name;
+		public AddShapedChoppingRecipe(IIngredient ore, IItemStack output, IIngredient[][] ingredients)
+		{
+			this(null, ore, output, ingredients);
+		}
 
-        public AddShapedChoppingRecipe(IIngredient ore, IItemStack output, IIngredient[][] ingredients) {
-            this(null, ore, output, ingredients);
-        }
+		public AddShapedChoppingRecipe(String name, IIngredient ore, IItemStack output, IIngredient[][] ingredients)
+		{
+			this.ore = ore;
+			this.output = output;
+			this.ingredients = ingredients;
+			if (name == null)
+			{
+				this.name = calculateName();
+			} else
+			{
+				this.name = name.replace(":", "_");
+			}
+		}
 
-        public AddShapedChoppingRecipe(String name, IIngredient ore, IItemStack output, IIngredient[][] ingredients) {
-            this.ore = ore;
-            this.output = output;
-            this.ingredients = ingredients;
-            if (name == null) {
-                this.name = calculateName();
-            } else {
-                this.name = name.replace(":", "_");
-            }
-        }
+		@Override
+		public void apply()
+		{
+			CTShapedChoppingRecipe ctRecipe = new CTShapedChoppingRecipe(ore, name, output, ingredients);
+			IRecipe recipe = convert(ctRecipe, new ResourceLocation("horsepower", name));
 
-        @Override
-        public void apply() {
-            CTShapedChoppingRecipe ctRecipe = new CTShapedChoppingRecipe(ore, name, output, ingredients);
-            IRecipe recipe = convert(ctRecipe, new ResourceLocation("horsepower", name));
+			recipe.setRegistryName(new ResourceLocation("horsepower", this.name));
+			ForgeRegistries.RECIPES.register(recipe);
+		}
 
-            recipe.setRegistryName(new ResourceLocation("horsepower", this.name));
-            ForgeRegistries.RECIPES.register(recipe);
-        }
+		@Override
+		public String describe()
+		{
+			if (output != null)
+			{
+				return "Adding shaped recipe for " + output.getDisplayName() + " with name " + name;
+			} else
+			{
+				return "Trying to add shaped recipe without correct output";
+			}
+		}
 
-        @Override
-        public String describe() {
-            if(output != null) {
-                return "Adding shaped recipe for " + output.getDisplayName() + " with name " + name;
-            } else {
-                return "Trying to add shaped recipe without correct output";
-            }
-        }
+		private String calculateName()
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append(output);
+			for (IIngredient[] ingredientArray : ingredients)
+			{
+				for (IIngredient ingredient : ingredientArray)
+				{
+					sb.append(ingredient.toCommandString());
+				}
+			}
 
-        private String calculateName() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(output);
-            for(IIngredient[] ingredientArray : ingredients) {
-                for(IIngredient ingredient : ingredientArray) {
-                    sb.append(ingredient.toCommandString());
-                }
-            }
+			int hash = sb.toString().hashCode();
+			while (usedHashes.contains(hash))
+				++hash;
+			usedHashes.add(hash);
 
-            int hash = sb.toString().hashCode();
-            while(usedHashes.contains(hash))
-                ++hash;
-            usedHashes.add(hash);
+			return "hp_shaped" + hash;
+		}
+	}
 
-            return "hp_shaped" + hash;
-        }
-    }
+	private static class AddShapelessChoppingRecipe implements IAction
+	{
 
-    private static class AddShapelessChoppingRecipe implements IAction {
+		private final IIngredient ore;
+		private final IItemStack output;
+		private final IIngredient[] ingredients;
+		private final String name;
 
-        private IIngredient ore;
-        private IItemStack output;
-        private IIngredient[] ingredients;
-        private String name;
+		public AddShapelessChoppingRecipe(IIngredient ore, IItemStack output, IIngredient[] ingredients)
+		{
+			this(null, ore, output, ingredients);
+		}
 
-        public AddShapelessChoppingRecipe(IIngredient ore, IItemStack output, IIngredient[] ingredients) {
-            this(null, ore, output, ingredients);
-        }
+		public AddShapelessChoppingRecipe(String name, IIngredient ore, IItemStack output, IIngredient[] ingredients)
+		{
+			this.ore = ore;
+			this.output = output;
+			this.ingredients = ingredients;
+			if (name == null)
+			{
+				this.name = calculateName();
+			} else
+			{
+				this.name = name.replace(":", "_");
+			}
+		}
 
-        public AddShapelessChoppingRecipe(String name, IIngredient ore, IItemStack output, IIngredient[] ingredients) {
-            this.ore = ore;
-            this.output = output;
-            this.ingredients = ingredients;
-            if (name == null) {
-                this.name = calculateName();
-            } else {
-                this.name = name.replace(":", "_");
-            }
-        }
+		@Override
+		public void apply()
+		{
+			CTShapelessChoppingRecipe ctRecipe = new CTShapelessChoppingRecipe(ore, name, output, ingredients);
+			IRecipe recipe = convert(ctRecipe, new ResourceLocation("horsepower", name));
 
-        @Override
-        public void apply() {
-            CTShapelessChoppingRecipe ctRecipe = new CTShapelessChoppingRecipe(ore, name, output, ingredients);
-            IRecipe recipe = convert(ctRecipe, new ResourceLocation("horsepower", name));
+			recipe.setRegistryName(new ResourceLocation("horsepower", this.name));
+			ForgeRegistries.RECIPES.register(recipe);
+		}
 
-            recipe.setRegistryName(new ResourceLocation("horsepower", this.name));
-            ForgeRegistries.RECIPES.register(recipe);
-        }
+		@Override
+		public String describe()
+		{
+			if (output != null)
+			{
+				return "Adding shapeless recipe for " + output.getDisplayName() + " with name " + name;
+			} else
+			{
+				return "Trying to add shapeless recipe without correct output";
+			}
+		}
 
-        @Override
-        public String describe() {
-            if(output != null) {
-                return "Adding shapeless recipe for " + output.getDisplayName() + " with name " + name;
-            } else {
-                return "Trying to add shapeless recipe without correct output";
-            }
-        }
+		private String calculateName()
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append(output);
+			for (IIngredient ingredient : ingredients)
+			{
+				sb.append(ingredient.toCommandString());
+			}
 
-        private String calculateName() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(output);
-            for(IIngredient ingredient : ingredients) {
-                sb.append(ingredient.toCommandString());
-            }
+			int hash = sb.toString().hashCode();
+			while (usedHashes.contains(hash))
+				++hash;
+			usedHashes.add(hash);
 
-            int hash = sb.toString().hashCode();
-            while(usedHashes.contains(hash))
-                ++hash;
-            usedHashes.add(hash);
-
-            return "hp_shapeless" + hash;
-        }
-    }
+			return "hp_shapeless" + hash;
+		}
+	}
 }

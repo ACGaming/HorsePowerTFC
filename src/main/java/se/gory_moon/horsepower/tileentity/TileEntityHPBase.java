@@ -25,303 +25,363 @@ import se.gory_moon.horsepower.recipes.HPRecipeBase;
 
 import javax.annotation.Nullable;
 
-public abstract class TileEntityHPBase extends TileEntity {
+public abstract class TileEntityHPBase extends TileEntity
+{
 
-    protected NonNullList<ItemStack> itemStacks = NonNullList.withSize(3, ItemStack.EMPTY);
-    protected IHPInventory inventory;
+	private final IItemHandler handlerBottom;
+	protected NonNullList<ItemStack> itemStacks = NonNullList.withSize(3, ItemStack.EMPTY);
+	protected IHPInventory inventory;
+	private EnumFacing forward = null;
+	private IItemHandler handlerNull = null;
+	private IItemHandler handlerIn = null;
 
-    private EnumFacing forward = null;
+	public TileEntityHPBase(int inventorySize)
+	{
+		itemStacks = NonNullList.withSize(inventorySize, ItemStack.EMPTY);
 
-    public TileEntityHPBase(int inventorySize) {
-        itemStacks = NonNullList.withSize(inventorySize, ItemStack.EMPTY);
+		inventory = new IHPInventory()
+		{
+			@Override
+			public int getSizeInventory()
+			{
+				return itemStacks.size();
+			}
 
-        inventory = new IHPInventory() {
-            @Override
-            public int getSizeInventory() {
-                return itemStacks.size();
-            }
+			@Override
+			public boolean isEmpty()
+			{
+				for (ItemStack itemstack : itemStacks)
+				{
+					if (!itemstack.isEmpty())
+					{
+						return false;
+					}
+				}
 
-            @Override
-            public boolean isEmpty() {
-                for (ItemStack itemstack : itemStacks) {
-                    if (!itemstack.isEmpty()) {
-                        return false;
-                    }
-                }
+				return true;
+			}
 
-                return true;
-            }
+			@Override
+			public ItemStack getStackInSlot(int index)
+			{
+				if (index >= itemStacks.size()) return ItemStack.EMPTY;
+				return itemStacks.get(index);
+			}
 
-            @Override
-            public ItemStack getStackInSlot(int index) {
-                if (index >= itemStacks.size()) return ItemStack.EMPTY;
-                return itemStacks.get(index);
-            }
+			@Override
+			public ItemStack decrStackSize(int index, int count)
+			{
+				ItemStack stack = ItemStackHelper.getAndSplit(itemStacks, index, count);
+				if (!stack.isEmpty())
+					markDirty();
+				return stack;
+			}
 
-            @Override
-            public ItemStack decrStackSize(int index, int count) {
-                ItemStack stack = ItemStackHelper.getAndSplit(itemStacks, index, count);
-                if (!stack.isEmpty())
-                    markDirty();
-                return stack;
-            }
+			@Override
+			public ItemStack removeStackFromSlot(int index)
+			{
+				ItemStack stack = ItemStackHelper.getAndRemove(itemStacks, index);
+				return stack;
+			}
 
-            @Override
-            public ItemStack removeStackFromSlot(int index) {
-                ItemStack stack = ItemStackHelper.getAndRemove(itemStacks, index);
-                return stack;
-            }
+			@Override
+			public void setInventorySlotContents(int index, ItemStack stack)
+			{
+				TileEntityHPBase.this.setInventorySlotContents(index, stack);
+			}
 
-            @Override
-            public void setInventorySlotContents(int index, ItemStack stack) {
-                TileEntityHPBase.this.setInventorySlotContents(index, stack);
-            }
+			@Override
+			public void setSlotContent(int index, ItemStack stack)
+			{
+				itemStacks.set(index, stack);
 
-            @Override
-            public void setSlotContent(int index, ItemStack stack) {
-                itemStacks.set(index, stack);
+				if (index == 0 && stack.getCount() > this.getInventoryStackLimit(stack))
+				{
+					stack.setCount(this.getInventoryStackLimit(stack));
+				}
+			}
 
-                if (index == 0 && stack.getCount() > this.getInventoryStackLimit(stack)) {
-                    stack.setCount(this.getInventoryStackLimit(stack));
-                }
-            }
+			@Override
+			public int getInventoryStackLimit()
+			{
+				return TileEntityHPBase.this.getInventoryStackLimit();
+			}
 
-            @Override
-            public int getInventoryStackLimit() {
-                return TileEntityHPBase.this.getInventoryStackLimit();
-            }
+			public int getInventoryStackLimit(ItemStack stack)
+			{
+				return TileEntityHPBase.this.getInventoryStackLimit(stack);
+			}
 
-            public int getInventoryStackLimit(ItemStack stack) {
-                return TileEntityHPBase.this.getInventoryStackLimit(stack);
-            }
+			@Override
+			public void markDirty()
+			{
+				TileEntityHPBase.this.markDirty();
+			}
 
-            @Override
-            public void markDirty() {
-                TileEntityHPBase.this.markDirty();
-            }
+			@Override
+			public boolean isUsableByPlayer(EntityPlayer player)
+			{
+				return getWorld().getTileEntity(getPos()) == TileEntityHPBase.this && player.getDistanceSq((double) getPos().getX() + 0.5D, (double) getPos().getY() + 0.5D, (double) getPos().getZ() + 0.5D) <= 64.0D;
+			}
 
-            @Override
-            public boolean isUsableByPlayer(EntityPlayer player) {
-                return getWorld().getTileEntity(getPos()) == TileEntityHPBase.this && player.getDistanceSq((double) getPos().getX() + 0.5D, (double) getPos().getY() + 0.5D, (double) getPos().getZ() + 0.5D) <= 64.0D;
-            }
+			@Override
+			public void openInventory(EntityPlayer player)
+			{
+			}
 
-            @Override
-            public void openInventory(EntityPlayer player) {}
+			@Override
+			public void closeInventory(EntityPlayer player)
+			{
+			}
 
-            @Override
-            public void closeInventory(EntityPlayer player) {}
+			@Override
+			public boolean isItemValidForSlot(int index, ItemStack stack)
+			{
+				return TileEntityHPBase.this.isItemValidForSlot(index, stack);
+			}
 
-            @Override
-            public boolean isItemValidForSlot(int index, ItemStack stack) {
-                return TileEntityHPBase.this.isItemValidForSlot(index, stack);
-            }
+			@Override
+			public int getField(int id)
+			{
+				return TileEntityHPBase.this.getField(id);
+			}
 
-            @Override
-            public int getField(int id) {
-                return TileEntityHPBase.this.getField(id);
-            }
+			@Override
+			public void setField(int id, int value)
+			{
+				TileEntityHPBase.this.setField(id, value);
+			}
 
-            @Override
-            public void setField(int id, int value) {TileEntityHPBase.this.setField(id, value);}
+			@Override
+			public int getFieldCount()
+			{
+				return TileEntityHPBase.this.getFieldCount();
+			}
 
-            @Override
-            public int getFieldCount() {
-                return TileEntityHPBase.this.getFieldCount();
-            }
+			@Override
+			public void clear()
+			{
+				itemStacks.clear();
+			}
 
-            @Override
-            public void clear() {
-                itemStacks.clear();
-            }
+			@Override
+			public String getName()
+			{
+				return TileEntityHPBase.this.getName();
+			}
 
-            @Override
-            public String getName() {
-                return TileEntityHPBase.this.getName();
-            }
+			@Override
+			public boolean hasCustomName()
+			{
+				return false;
+			}
 
-            @Override
-            public boolean hasCustomName() {
-                return false;
-            }
+			@Override
+			public ITextComponent getDisplayName()
+			{
+				return TileEntityHPBase.this.getDisplayName();
+			}
+		};
+		handlerIn = new RangedWrapper(new InvWrapper(inventory), 0, 1);
+		handlerBottom = new RangedWrapper(new InvWrapper(inventory), 1, getOutputSlot() + 1);
+		handlerNull = new InvWrapper(inventory);
+	}
 
-            @Override
-            public ITextComponent getDisplayName() {
-                return TileEntityHPBase.this.getDisplayName();
-            }
-        };
-        handlerIn = new RangedWrapper(new InvWrapper(inventory), 0, 1);
-        handlerBottom = new RangedWrapper(new InvWrapper(inventory), 1, getOutputSlot() + 1);
-        handlerNull = new InvWrapper(inventory);
-    }
+	public static boolean canCombine(ItemStack stack1, ItemStack stack2)
+	{
+		return stack1.getItem() == stack2.getItem() && (stack1.getMetadata() == stack2.getMetadata() && (stack1.getCount() <= stack1.getMaxStackSize() && ItemStack.areItemStackTagsEqual(stack1, stack2)));
+	}
 
-    public abstract HPRecipeBase getRecipe();
+	public abstract HPRecipeBase getRecipe();
 
-    public abstract ItemStack getRecipeItemStack();
+	public abstract ItemStack getRecipeItemStack();
 
-    public abstract int getInventoryStackLimit();
+	public abstract int getInventoryStackLimit();
 
-    public abstract boolean isItemValidForSlot(int index, ItemStack stack);
+	public abstract boolean isItemValidForSlot(int index, ItemStack stack);
 
-    public int getField(int id) {
-        return 0;
-    }
+	public int getField(int id)
+	{
+		return 0;
+	}
 
-    public void setField(int id, int value) {}
+	public void setField(int id, int value)
+	{
+	}
 
-    public int getFieldCount() {
-        return 0;
-    }
+	public int getFieldCount()
+	{
+		return 0;
+	}
 
-    public abstract String getName();
+	public abstract String getName();
 
-    public abstract int getOutputSlot();
+	public abstract int getOutputSlot();
 
-    public ItemStack getStackInSlot(int index) {
-        return inventory.getStackInSlot(index);
-    }
+	public ItemStack getStackInSlot(int index)
+	{
+		return inventory.getStackInSlot(index);
+	}
 
-    public ItemStack removeStackFromSlot(int index) {
-        return inventory.removeStackFromSlot(index);
-    }
+	public ItemStack removeStackFromSlot(int index)
+	{
+		return inventory.removeStackFromSlot(index);
+	}
 
-    public IHPInventory getInventory() {
-        return inventory;
-    }
+	public IHPInventory getInventory()
+	{
+		return inventory;
+	}
 
-    public void setInventorySlotContents(int index, ItemStack stack) {
-        inventory.setSlotContent(index, stack);
-    }
+	public void setInventorySlotContents(int index, ItemStack stack)
+	{
+		inventory.setSlotContent(index, stack);
+	}
 
-    public int getInventoryStackLimit(ItemStack stack) {
-        return getInventoryStackLimit();
-    }
+	public int getInventoryStackLimit(ItemStack stack)
+	{
+		return getInventoryStackLimit();
+	}
 
-    public IExtendedBlockState getExtendedState(IExtendedBlockState state) {
-        return state;
-    }
+	public IExtendedBlockState getExtendedState(IExtendedBlockState state)
+	{
+		return state;
+	}
 
-    @Override
-    public void readFromNBT(NBTTagCompound compound) {
-        super.readFromNBT(compound);
+	@Override
+	public void readFromNBT(NBTTagCompound compound)
+	{
+		super.readFromNBT(compound);
 
-        itemStacks = NonNullList.withSize(inventory.getSizeInventory(), ItemStack.EMPTY);
-        ItemStackHelper.loadAllItems(compound, itemStacks);
+		itemStacks = NonNullList.withSize(inventory.getSizeInventory(), ItemStack.EMPTY);
+		ItemStackHelper.loadAllItems(compound, itemStacks);
 
-        if (canBeRotated()) {
-            forward = EnumFacing.byName(compound.getString("forward"));
-        }
-    }
+		if (canBeRotated())
+		{
+			forward = EnumFacing.byName(compound.getString("forward"));
+		}
+	}
 
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound compound) {
-        super.writeToNBT(compound);
-        ItemStackHelper.saveAllItems(compound, itemStacks);
+	@Override
+	public NBTTagCompound writeToNBT(NBTTagCompound compound)
+	{
+		super.writeToNBT(compound);
+		ItemStackHelper.saveAllItems(compound, itemStacks);
 
-        if (canBeRotated()) {
-            compound.setString("forward", getForward().getName());
-        }
-        return compound;
-    }
+		if (canBeRotated())
+		{
+			compound.setString("forward", getForward().getName());
+		}
+		return compound;
+	}
 
-    @Override
-    public void markDirty() {
-        final IBlockState state = getWorld().getBlockState(getPos());
-        getWorld().notifyBlockUpdate(getPos(), state, state, 2);
-        super.markDirty();
-    }
+	@Override
+	public void markDirty()
+	{
+		final IBlockState state = getWorld().getBlockState(getPos());
+		getWorld().notifyBlockUpdate(getPos(), state, state, 2);
+		super.markDirty();
+	}
 
-    public boolean canWork() {
-        if (getStackInSlot(0).isEmpty()) {
-            return false;
-        } else {
-            HPRecipeBase recipeBase = getRecipe();
-            if (recipeBase == null) return false;
+	public boolean canWork()
+	{
+		if (getStackInSlot(0).isEmpty())
+		{
+			return false;
+		} else
+		{
+			HPRecipeBase recipeBase = getRecipe();
+			if (recipeBase == null) return false;
 
-            ItemStack input = recipeBase.getInput();
-            ItemStack itemstack = recipeBase.getOutput();
-            ItemStack secondary = recipeBase.getSecondary();
+			ItemStack input = recipeBase.getInput();
+			ItemStack itemstack = recipeBase.getOutput();
+			ItemStack secondary = recipeBase.getSecondary();
 
-            if (getStackInSlot(0).getCount() < input.getCount())
-                return false;
-            if (itemstack.isEmpty())
-                return false;
+			if (getStackInSlot(0).getCount() < input.getCount())
+				return false;
+			if (itemstack.isEmpty())
+				return false;
 
-            ItemStack output = getStackInSlot(1);
-            ItemStack outputSecondary = secondary.isEmpty() ? ItemStack.EMPTY: inventory.getStackInSlot(2);
-            if (!secondary.isEmpty() && !outputSecondary.isEmpty()) {
-                if (!outputSecondary.isItemEqual(secondary)) return false;
-                if (outputSecondary.getCount() + secondary.getCount() > secondary.getMaxStackSize()) return false;
-            }
-            return output.isEmpty() || output.isItemEqual(itemstack) && output.getCount() + itemstack.getCount() <= output.getMaxStackSize();
-        }
-    }
+			ItemStack output = getStackInSlot(1);
+			ItemStack outputSecondary = secondary.isEmpty() ? ItemStack.EMPTY : inventory.getStackInSlot(2);
+			if (!secondary.isEmpty() && !outputSecondary.isEmpty())
+			{
+				if (!outputSecondary.isItemEqual(secondary)) return false;
+				if (outputSecondary.getCount() + secondary.getCount() > secondary.getMaxStackSize()) return false;
+			}
+			return output.isEmpty() || output.isItemEqual(itemstack) && output.getCount() + itemstack.getCount() <= output.getMaxStackSize();
+		}
+	}
 
-    public static boolean canCombine(ItemStack stack1, ItemStack stack2) {
-        return stack1.getItem() == stack2.getItem() && (stack1.getMetadata() == stack2.getMetadata() && (stack1.getCount() <= stack1.getMaxStackSize() && ItemStack.areItemStackTagsEqual(stack1, stack2)));
-    }
+	public boolean canBeRotated()
+	{
+		return false;
+	}
 
-    public boolean canBeRotated() {
-        return false;
-    }
+	public EnumFacing getForward()
+	{
+		if (forward == null)
+			return EnumFacing.NORTH;
+		return forward;
+	}
 
-    public EnumFacing getForward() {
-        if (forward == null)
-            return EnumFacing.NORTH;
-        return forward;
-    }
+	public void setForward(EnumFacing forward)
+	{
+		this.forward = forward;
+	}
 
-    public void setForward(EnumFacing forward) {
-        this.forward = forward;
-    }
+	@Override
+	public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newState)
+	{
+		return oldState.getBlock() != newState.getBlock();
+	}
 
-    @Override
-    public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newState) {
-        return oldState.getBlock() != newState.getBlock();
-    }
+	@Nullable
+	@Override
+	public SPacketUpdateTileEntity getUpdatePacket()
+	{
+		return new SPacketUpdateTileEntity(getPos(), -999, getUpdateTag());
+	}
 
-    @Nullable
-    @Override
-    public SPacketUpdateTileEntity getUpdatePacket() {
-        return new SPacketUpdateTileEntity(getPos(), -999, getUpdateTag());
-    }
+	@Override
+	@SideOnly(Side.CLIENT)
+	public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt)
+	{
+		handleUpdateTag(pkt.getNbtCompound());
+	}
 
-    @Override
-    @SideOnly(Side.CLIENT)
-    public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt) {
-        handleUpdateTag(pkt.getNbtCompound());
-    }
+	@Override
+	public NBTTagCompound getUpdateTag()
+	{
+		return writeToNBT(new NBTTagCompound());
+	}
 
-    @Override
-    public NBTTagCompound getUpdateTag() {
-        return writeToNBT(new NBTTagCompound());
-    }
+	@Override
+	public void handleUpdateTag(NBTTagCompound tag)
+	{
+		readFromNBT(tag);
+		markDirty();
+	}
 
-    @Override
-    public void handleUpdateTag(NBTTagCompound tag) {
-        readFromNBT(tag);
-        markDirty();
-    }
+	@Override
+	public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing)
+	{
+		return (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY || super.hasCapability(capability, facing));
+	}
 
-    private IItemHandler handlerNull = null;
-    private IItemHandler handlerBottom;
-    private IItemHandler handlerIn = null;
-
-    @Override
-    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing) {
-        return (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY || super.hasCapability(capability, facing));
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T getCapability(Capability<T> capability, @javax.annotation.Nullable EnumFacing facing) {
-        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            if (facing == null)
-                return (T) handlerNull;
-            else if (facing == EnumFacing.DOWN)
-                return (T) handlerBottom;
-            else
-                return (T) handlerIn;
-        }
-        return super.getCapability(capability, facing);
-    }
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T> T getCapability(Capability<T> capability, @javax.annotation.Nullable EnumFacing facing)
+	{
+		if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)
+		{
+			if (facing == null)
+				return (T) handlerNull;
+			else if (facing == EnumFacing.DOWN)
+				return (T) handlerBottom;
+			else
+				return (T) handlerIn;
+		}
+		return super.getCapability(capability, facing);
+	}
 }
