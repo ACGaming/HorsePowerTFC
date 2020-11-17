@@ -2,12 +2,13 @@
   {
     "modid": "horsepower",
     "name": "Horse Power",
-    "description": "A mods that adds horse powered blocks.",
+    "description": "A mod that adds horse-powered blocks. Tampered with by AnodeCathode for TFC.",
     "version": "${mod_version}",
     "mcversion": "${mc_version}",
     "authorList": [
-      "AnodeCathode"
+		"Gory_Moon",
+		"AnodeCathode"
     ],
-    "credits": "The TFC dev team for this awesome mod."
+    "credits": "Darkosto for coming up with the idea and the TFC dev team for this awesome mod."
   }
 ]
